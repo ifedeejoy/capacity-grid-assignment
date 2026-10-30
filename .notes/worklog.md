@@ -53,7 +53,7 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Tests: ISO-week numbering across the year boundary, the status boundary (40 of 40 is full, 40.004 is still
   full after 2-dp rounding), a late response for an abandoned range being ignored, and the save rollback.
 - Deferred: row virtualisation and server-side paging for a few-thousand-person roster (500×3 renders fine,
-  3000×104 cells would not); sort/filter beyond "only over-allocated"; keyboard navigation between cells;
+  3000×104 cells would not); sorting and a name search; keyboard navigation between cells;
   a project breakdown on hover; persisting the range in the URL.
 - Bug caught by actually typing into the date picker: Chrome fires change per keystroke, so "0002-01-18"
   landed as a real date and dragged the range to 1906; it also allows five-digit years, which crashed the
@@ -70,6 +70,16 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Also from the pass: `stale` now compares against the range that was *requested*, not the server echo, so a
   future server that snaps differently can't leave the grid permanently "stale"; "This week" lost two
   redundant clamp calls; a duplicate ISO-week case was cut; the API gained tests for the week snapping.
-- The legend's coloured squares read as checkboxes and did nothing, which was fair feedback. They are now
-  real checkboxes: tick any mix of over / at capacity / within to show people with at least one such week,
-  none ticked shows everyone. The separate "Only over-allocated" box we had added became redundant and went.
+
+## Manual pass and feedback
+
+- Clicked through every goal in the brief in a real browser, screenshot per step (`.context/qa-*`): default
+  range checked cell-by-cell against a direct SQL query, prev/next/this-week, typed date ranges, a valid edit,
+  an invalid edit, a failed save, a failed range change, a failed first load, and Retry from each. Not seen by
+  eye: the brief loading state (loads finish in ~10 ms locally) and light mode (machine is in dark mode).
+- Feedback: the legend's coloured squares read as checkboxes and did nothing. They are now the filter: tick
+  any mix of over / at capacity / within to show people with at least one such week, none ticked shows
+  everyone. The separate "Only over-allocated" box was ours, not the scaffold's, so it went rather than
+  duplicating the new "over" tick.
+- Feedback, second round: a tick box beside a coloured square is two controls for one idea. The swatch is
+  now the checkbox itself; the native input stays visually hidden so label, Tab, Space and focus ring work.
