@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CapacityGrid } from './CapacityGrid'
+import { DateField } from './DateField'
 import { clampRange, rangeLabel, shiftRange, sundayOf, todayISO, weekCount, type Range } from './weeks'
 
 // Three weeks around the turn of the year: the seed's hand-written scenario
@@ -36,25 +37,16 @@ export function App() {
               This week
             </button>
           </div>
-          <label>
-            From
-            <input
-              type="date"
-              value={range.from}
-              onChange={(e) => e.target.value && setRange((r) => clampRange(e.target.value, r.to, 'from'))}
-            />
-          </label>
-          <label>
-            To
-            <input
-              type="date"
-              value={range.to}
-              onChange={(e) => e.target.value && setRange((r) => clampRange(r.from, e.target.value, 'to'))}
-            />
-          </label>
+          <DateField
+            label="From"
+            value={range.from}
+            onCommit={(v) => setRange((r) => clampRange(v, r.to, 'from'))}
+          />
+          <DateField label="To" value={range.to} onCommit={(v) => setRange((r) => clampRange(r.from, v, 'to'))} />
         </div>
       </header>
       <CapacityGrid from={range.from} to={range.to} />
     </main>
   )
 }
+

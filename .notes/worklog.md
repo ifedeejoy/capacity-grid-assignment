@@ -55,3 +55,6 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Deferred: row virtualisation and server-side paging for a few-thousand-person roster (500×3 renders fine,
   3000×104 cells would not); sort/filter beyond "only over-allocated"; keyboard navigation between cells;
   a project breakdown on hover; persisting the range in the URL.
+- Bug caught by actually typing into the date picker: Chrome fires change per keystroke, so "0002-01-18"
+  landed as a real date and dragged the range to 1906; it also allows five-digit years, which crashed the
+  range reducer on blur. `DateField` now only commits a 4-digit year in 2000–2099 and discards the rest.
