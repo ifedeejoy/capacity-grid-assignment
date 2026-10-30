@@ -32,3 +32,26 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Range capped at 110 weeks (two years and change). A wider window is a client bug, not a need.
 - Deferred: people pagination for a few-thousand-person roster; a GiST index on
   `daterange(start_date, end_date)` would replace the btree range scan at scale.
+
+## Frontend
+
+- After a save the grid patches the one row from the PATCH response. No refetch: allocations don't depend on
+  weekly hours, and refetching a 3000×104 grid to change one scalar is the wrong trade. The optimistic value
+  shows immediately; the server's echoed value replaces it, so any server-side normalisation reaches the screen.
+- Failed save: row rolls back to the previous hours, an inline error names the attempted value and offers
+  Retry / Dismiss. The rest of the grid stays usable. The input is disabled during a save so two in-flight
+  saves on one row cannot race each other's rollback.
+- Range change aborts the in-flight request. The previous grid stays on screen, dimmed, with a loading notice;
+  a failed range keeps the previous grid and says which range it is actually showing.
+- Dead end: a save against a stopped API sat in "saving…" until the Vite proxy gave up. Added a 15 s timeout
+  on both calls, with messages a manager can read instead of "signal timed out".
+- Over-allocation is colour plus a ▲ marker and visually-hidden text, not colour alone. Zero-capacity cells
+  with allocation read "no capacity" instead of a divide-by-zero percentage.
+- Dates are handled as UTC civil dates throughout; `new Date('2025-12-29')` in a UTC-8 browser is Dec 28.
+- Default range is the seed's hand-written scenario (29 Dec 2025 – 18 Jan 2026), not today, so the grid lands
+  somewhere interesting. "This week" is one click away.
+- Tests: ISO-week numbering across the year boundary, the status boundary (40 of 40 is full, 40.004 is still
+  full after 2-dp rounding), a late response for an abandoned range being ignored, and the save rollback.
+- Deferred: row virtualisation and server-side paging for a few-thousand-person roster (500×3 renders fine,
+  3000×104 cells would not); sort/filter beyond "only over-allocated"; keyboard navigation between cells;
+  a project breakdown on hover; persisting the range in the URL.
