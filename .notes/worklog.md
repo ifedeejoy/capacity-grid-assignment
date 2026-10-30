@@ -61,8 +61,8 @@ left unfinished. Append as you go; a line or two per entry is right.
 
 ## Self-review pass
 
-- Process: before merging, the diff was run through a custom PR-review skill Ifedayo maintains for day-to-day
-  work. It adds a "fix consequences" pass on top of a normal review: sweep for siblings of each bug class,
+- Process: before merging, the diff was run through a PR-review skill Ifedayo built for a personal workflow.
+  It adds a "fix consequences" pass on top of a normal review: sweep for siblings of each bug class,
   walk every state a new guard can leave the system in, judge whether the test harness could have failed at
   all. That walk is what surfaced the bug below; a plain read of the diff had passed it.
 - Bug found by that pass, then proven with a throwaway test: save state lived in the
