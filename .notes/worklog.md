@@ -61,7 +61,11 @@ left unfinished. Append as you go; a line or two per entry is right.
 
 ## Self-review pass
 
-- Bug found by reviewing the diff as a stranger, then proven with a throwaway test: save state lived in the
+- Process: before merging, the diff was run through a custom PR-review skill Ifedayo maintains for day-to-day
+  work. It adds a "fix consequences" pass on top of a normal review: sweep for siblings of each bug class,
+  walk every state a new guard can leave the system in, judge whether the test harness could have failed at
+  all. That walk is what surfaced the bug below; a plain read of the diff had passed it.
+- Bug found by that pass, then proven with a throwaway test: save state lived in the
   row component, guarded by a mounted ref. With "Only over-allocated" on, raising someone's hours takes them
   out of the filter mid-save, the row unmounts, and a *rejected* save never rolled back — the grid kept the
   value the server refused, and the manager saw the row vanish as if it had worked. Save state now lives in
@@ -73,6 +77,9 @@ left unfinished. Append as you go; a line or two per entry is right.
 
 ## Manual pass and feedback
 
+- Process: Ifedayo's call to verify in a real browser with real clicks and a screenshot per step, rather than
+  trusting the unit suite. Every bug found after the first build (hung save, date picker, legend) came from
+  this, not from tests.
 - Clicked through every goal in the brief in a real browser, screenshot per step (`.context/qa-*`): default
   range checked cell-by-cell against a direct SQL query, prev/next/this-week, typed date ranges, a valid edit,
   an invalid edit, a failed save, a failed range change, a failed first load, and Retry from each. Not seen by
