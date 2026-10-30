@@ -1,5 +1,16 @@
 :root {
   color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root {
   font-family: ui-sans-serif, system-ui, sans-serif;
   --line: color-mix(in srgb, currentColor 18%, transparent);
   --line-strong: color-mix(in srgb, currentColor 35%, transparent);
@@ -87,6 +98,13 @@ input[type='number'] {
   border-radius: 6px;
   padding: 0.3rem 0.5rem;
   background: transparent;
+}
+
+.theme-toggle {
+  width: 2.2rem;
+  padding: 0.3rem 0;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 /* Notices */
