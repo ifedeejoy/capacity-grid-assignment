@@ -24,13 +24,27 @@
   --ok-bg: color-mix(in srgb, #43a047 14%, Canvas);
 }
 
+html,
 body {
+  height: 100%;
   margin: 0;
-  padding: 1.5rem 2rem 3rem;
 }
 
+/* The page never scrolls; the grid does. main is a column that fills the
+   viewport and the grid takes whatever height the toolbar and notices leave. */
 main {
-  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100dvh;
+  padding: 1.5rem 2rem 2rem;
+}
+
+.capacity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 h1 {
@@ -136,6 +150,12 @@ input[type='number'] {
   align-items: center;
   margin-bottom: 0.75rem;
   font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.notice,
+.toolbar {
+  flex-shrink: 0;
 }
 
 .summary-shown {
@@ -215,8 +235,12 @@ input[type='number'] {
 /* Grid */
 
 .grid-wrap {
+  /* relative: the visually-hidden text inside cells is absolutely positioned
+     and must be contained here, or it stretches the page to the table's height */
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  max-height: calc(100vh - 12rem);
   border: 1px solid var(--line);
   border-radius: 8px;
   transition: opacity 0.15s;

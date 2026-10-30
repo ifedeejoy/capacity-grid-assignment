@@ -93,3 +93,8 @@ left unfinished. Append as you go; a line or two per entry is right.
   duplicating the new "over" tick.
 - Feedback, second round: a tick box beside a coloured square is two controls for one idea. The swatch is
   now the checkbox itself; the native input stays visually hidden so label, Tab, Space and focus ring work.
+- Bug from use: the page itself scrolled through ~27,000 px of nothing below the grid. Cause: the
+  visually-hidden "over capacity" text in every cell is `position: absolute`, and with no positioned ancestor
+  it sat at its cell's layout position relative to the page, outside the overflow container's clipping. Fix:
+  the grid wrapper is now `position: relative`, and the page is a viewport-filling column so the grid takes
+  the remaining height instead of a guessed `100vh - 12rem`. The page never scrolls; only the grid does.
