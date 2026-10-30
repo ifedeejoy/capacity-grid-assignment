@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchCapacity, type CapacityResponse, type Person } from './api'
+import { fetchCapacity, updateWeeklyHours, type CapacityResponse, type Person } from './api'
+
+export type SaveState = { status: 'saving' } | { status: 'failed'; attempted: number; message: string }
 
 export type CapacityState = {
   /** Last successfully loaded grid. Kept on screen while a new range loads or fails. */
@@ -11,9 +13,16 @@ export type CapacityState = {
   /** `data` was loaded for a different range than the one requested. */
   stale: boolean
   retry: () => void
-  /** Apply a person's new stored values to the loaded grid in place. */
-  applyPerson: (person: Person) => void
+  /** In-flight or failed saves, keyed by person id. Absent means idle. */
+  saves: Record<number, SaveState>
+  /** Save a person's weekly hours: optimistic, then settled on the server's answer. */
+  saveWeeklyHours: (person: Person, weeklyHours: number) => Promise<void>
+  dismissSave: (id: number) => void
 }
+
+type Loaded = { key: string; data: CapacityResponse }
+
+const rangeKey = (from: string, to: string) => `${from}..${to}`
 
 /**
  * Loads capacity for a range and keeps the last good result visible.
@@ -21,12 +30,17 @@ export type CapacityState = {
  * Range changes abort the in-flight request, so a slow response for a range
  * the manager has already navigated away from can never overwrite a newer
  * one. Failures keep the previous grid on screen alongside the error.
+ *
+ * Saves live here rather than in the row that started them: a row can be
+ * filtered out of view while its save is still in flight, and the rollback
+ * on failure must happen regardless.
  */
 export function useCapacity(from: string, to: string): CapacityState {
-  const [data, setData] = useState<CapacityResponse | null>(null)
+  const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [saves, setSaves] = useState<Record<number, SaveState>>({})
 
   useEffect(() => {
     const controller = new AbortController()
@@ -35,7 +49,7 @@ export function useCapacity(from: string, to: string): CapacityState {
 
     fetchCapacity(from, to, controller.signal)
       .then((res) => {
-        setData(res)
+        setLoaded({ key: rangeKey(from, to), data: res })
         setLoading(false)
       })
       .catch((err: unknown) => {
@@ -50,18 +64,53 @@ export function useCapacity(from: string, to: string): CapacityState {
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
 
   const applyPerson = useCallback((person: Person) => {
-    setData((current) => {
+    setLoaded((current) => {
       if (!current) return current
       return {
         ...current,
-        people: current.people.map((row) =>
-          row.id === person.id ? { ...row, name: person.name, weeklyHours: person.weeklyHours } : row,
-        ),
+        data: {
+          ...current.data,
+          people: current.data.people.map((row) =>
+            row.id === person.id ? { ...row, name: person.name, weeklyHours: person.weeklyHours } : row,
+          ),
+        },
       }
     })
   }, [])
 
-  const stale = data !== null && (data.from !== from || data.to !== to)
+  const dismissSave = useCallback((id: number) => {
+    setSaves((current) => {
+      const { [id]: _dropped, ...rest } = current
+      return rest
+    })
+  }, [])
 
-  return { data, loading, error, stale, retry, applyPerson }
+  const saveWeeklyHours = useCallback(
+    async (person: Person, weeklyHours: number) => {
+      const previous = person.weeklyHours
+      setSaves((current) => ({ ...current, [person.id]: { status: 'saving' } }))
+      applyPerson({ ...person, weeklyHours })
+      try {
+        const stored = await updateWeeklyHours(person.id, weeklyHours)
+        applyPerson(stored)
+        dismissSave(person.id)
+      } catch (err) {
+        applyPerson({ ...person, weeklyHours: previous })
+        setSaves((current) => ({
+          ...current,
+          [person.id]: {
+            status: 'failed',
+            attempted: weeklyHours,
+            message: err instanceof Error ? err.message : 'Could not save',
+          },
+        }))
+      }
+    },
+    [applyPerson, dismissSave],
+  )
+
+  const data = loaded?.data ?? null
+  const stale = loaded !== null && loaded.key !== rangeKey(from, to)
+
+  return { data, loading, error, stale, retry, saves, saveWeeklyHours, dismissSave }
 }

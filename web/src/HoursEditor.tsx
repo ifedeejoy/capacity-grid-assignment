@@ -1,148 +1,109 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { updateWeeklyHours, type Person } from './api'
+import type { Person } from './api'
 import { formatHours, parseWeeklyHours } from './model'
+import type { SaveState } from './useCapacity'
 
 type Props = {
   person: Person
-  /** Pushes a person's values into the grid. Called optimistically, then with the server's answer. */
-  onApply: (person: Person) => void
+  /** Progress of this person's save, owned by the grid so it outlives the row. */
+  save?: SaveState
+  onSave: (weeklyHours: number) => void
+  onDismiss: () => void
 }
 
-type Mode =
-  | { kind: 'view' }
-  | { kind: 'edit'; draft: string; problem: string | null }
-  | { kind: 'saving' }
-  | { kind: 'failed'; attempted: number; message: string }
+type Editing = { draft: string; problem: string | null }
 
 /**
- * Click-to-edit weekly hours for one row.
- *
- * Saves optimistically: the grid recolours the moment the manager commits a
- * value, then settles on whatever the server actually stored. A failed save
- * rolls the row back and keeps the attempted value one click away.
+ * Click-to-edit weekly hours for one row. Owns only the draft; saving,
+ * failure and rollback are the grid's business.
  */
-export function HoursEditor({ person, onApply }: Props) {
-  const [mode, setMode] = useState<Mode>({ kind: 'view' })
+export function HoursEditor({ person, save, onSave, onDismiss }: Props) {
+  const [editing, setEditing] = useState<Editing | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const mounted = useRef(true)
 
   useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (mode.kind === 'edit') inputRef.current?.select()
-  }, [mode.kind])
+    if (editing) inputRef.current?.select()
+  }, [editing !== null]) // eslint-disable-line react-hooks/exhaustive-deps -- select once per edit session
 
   function beginEdit() {
-    setMode({ kind: 'edit', draft: formatHours(person.weeklyHours), problem: null })
-  }
-
-  async function save(value: number) {
-    if (value === person.weeklyHours) {
-      setMode({ kind: 'view' })
-      return
-    }
-    const previous = person.weeklyHours
-    setMode({ kind: 'saving' })
-    onApply({ ...person, weeklyHours: value })
-    try {
-      const stored = await updateWeeklyHours(person.id, value)
-      if (!mounted.current) return
-      onApply(stored)
-      setMode({ kind: 'view' })
-    } catch (err) {
-      if (!mounted.current) return
-      onApply({ ...person, weeklyHours: previous })
-      setMode({
-        kind: 'failed',
-        attempted: value,
-        message: err instanceof Error ? err.message : 'Could not save',
-      })
-    }
+    if (save?.status === 'failed') onDismiss()
+    setEditing({ draft: formatHours(person.weeklyHours), problem: null })
   }
 
   function commitDraft(draft: string) {
     const parsed = parseWeeklyHours(draft)
     if ('error' in parsed) {
-      setMode({ kind: 'edit', draft, problem: parsed.error })
+      setEditing({ draft, problem: parsed.error })
       return
     }
-    void save(parsed.value)
+    setEditing(null)
+    if (parsed.value !== person.weeklyHours) onSave(parsed.value)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (mode.kind !== 'edit') return
+    if (!editing) return
     if (e.key === 'Enter') {
       e.preventDefault()
-      commitDraft(mode.draft)
+      commitDraft(editing.draft)
     } else if (e.key === 'Escape') {
       e.preventDefault()
-      setMode({ kind: 'view' })
+      setEditing(null)
     }
   }
 
   const label = `Weekly hours for ${person.name}`
 
-  switch (mode.kind) {
-    case 'edit':
-      return (
-        <span className="hours hours--editing">
-          <input
-            ref={inputRef}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={168}
-            step={0.5}
-            value={mode.draft}
-            aria-label={label}
-            aria-invalid={mode.problem !== null}
-            onChange={(e) => setMode({ kind: 'edit', draft: e.target.value, problem: null })}
-            onKeyDown={onKeyDown}
-            onBlur={() => commitDraft(mode.draft)}
-          />
-          <span className="hours-unit">h</span>
-          {mode.problem && (
-            <span className="hours-problem" role="alert">
-              {mode.problem}
-            </span>
-          )}
-        </span>
-      )
-    case 'saving':
-      return (
-        <span className="hours hours--saving" aria-live="polite">
-          {formatHours(person.weeklyHours)} h <span className="hours-note">saving…</span>
-        </span>
-      )
-    case 'failed':
-      return (
-        <span className="hours hours--failed">
-          <button type="button" className="hours-value" onClick={beginEdit} aria-label={`${label}, edit`}>
-            {formatHours(person.weeklyHours)} h
-          </button>
-          <span className="hours-error" role="alert">
-            Couldn’t save {formatHours(mode.attempted)} h: {mode.message}{' '}
-            <button type="button" onClick={() => void save(mode.attempted)}>
-              Retry
-            </button>{' '}
-            <button type="button" onClick={() => setMode({ kind: 'view' })}>
-              Dismiss
-            </button>
-          </span>
-        </span>
-      )
-    default:
-      return (
-        <span className="hours">
-          <button type="button" className="hours-value" onClick={beginEdit} aria-label={`${label}, edit`}>
-            {formatHours(person.weeklyHours)} h
-          </button>
-        </span>
-      )
+  if (save?.status === 'saving') {
+    return (
+      <span className="hours hours--saving" aria-live="polite">
+        {formatHours(person.weeklyHours)} h <span className="hours-note">saving…</span>
+      </span>
+    )
   }
+
+  if (editing) {
+    return (
+      <span className="hours hours--editing">
+        <input
+          ref={inputRef}
+          type="number"
+          inputMode="decimal"
+          min={0}
+          max={168}
+          step="any"
+          value={editing.draft}
+          aria-label={label}
+          aria-invalid={editing.problem !== null}
+          onChange={(e) => setEditing({ draft: e.target.value, problem: null })}
+          onKeyDown={onKeyDown}
+          onBlur={() => commitDraft(editing.draft)}
+        />
+        <span className="hours-unit">h</span>
+        {editing.problem && (
+          <span className="hours-problem" role="alert">
+            {editing.problem}
+          </span>
+        )}
+      </span>
+    )
+  }
+
+  return (
+    <span className={`hours${save?.status === 'failed' ? ' hours--failed' : ''}`}>
+      <button type="button" className="hours-value" onClick={beginEdit} aria-label={`${label}, edit`}>
+        {formatHours(person.weeklyHours)} h
+      </button>
+      {save?.status === 'failed' && (
+        <span className="hours-error" role="alert">
+          Couldn’t save {formatHours(save.attempted)} h: {save.message}{' '}
+          <button type="button" onClick={() => onSave(save.attempted)}>
+            Retry
+          </button>{' '}
+          <button type="button" onClick={onDismiss}>
+            Dismiss
+          </button>
+        </span>
+      )}
+    </span>
+  )
 }

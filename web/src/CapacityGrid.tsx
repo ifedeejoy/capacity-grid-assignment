@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { CapacityRow } from './api'
 import { HoursEditor } from './HoursEditor'
 import { cellStatus, formatHours, utilisation, type CellStatus } from './model'
-import { useCapacity } from './useCapacity'
+import { useCapacity, type SaveState } from './useCapacity'
 import { isoWeek, rangeLabel, shortDate } from './weeks'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
 // Reads GET /api/capacity. Weekly hours are editable inline; a save updates
 // the row from the server's answer, never from a refetch of the whole range.
 export function CapacityGrid({ from, to }: Props) {
-  const { data, loading, error, stale, retry, applyPerson } = useCapacity(from, to)
+  const { data, loading, error, stale, retry, saves, saveWeeklyHours, dismissSave } = useCapacity(from, to)
   const [onlyOver, setOnlyOver] = useState(false)
 
   if (!data) {
@@ -35,7 +35,9 @@ export function CapacityGrid({ from, to }: Props) {
 
   const overByPerson = data.people.map((p) => p.allocated.some((a) => cellStatus(a, p.weeklyHours) === 'over'))
   const overCount = overByPerson.filter(Boolean).length
-  const rows = onlyOver ? data.people.filter((_, i) => overByPerson[i]) : data.people
+  // A row mid-save stays visible under the filter: its optimistic value may
+  // have taken it out of "over", and the manager needs to see the outcome.
+  const rows = onlyOver ? data.people.filter((p, i) => overByPerson[i] || saves[p.id] !== undefined) : data.people
 
   return (
     <section className="capacity" aria-busy={loading}>
@@ -82,7 +84,14 @@ export function CapacityGrid({ from, to }: Props) {
           </thead>
           <tbody>
             {rows.map((p) => (
-              <PersonRow key={p.id} person={p} weeks={data.weeks} onApply={applyPerson} />
+              <PersonRow
+                key={p.id}
+                person={p}
+                weeks={data.weeks}
+                save={saves[p.id]}
+                onSave={(hours) => void saveWeeklyHours(p, hours)}
+                onDismiss={() => dismissSave(p.id)}
+              />
             ))}
             {rows.length === 0 && (
               <tr>
@@ -101,15 +110,17 @@ export function CapacityGrid({ from, to }: Props) {
 type RowProps = {
   person: CapacityRow
   weeks: string[]
-  onApply: (p: { id: number; name: string; weeklyHours: number }) => void
+  save?: SaveState
+  onSave: (weeklyHours: number) => void
+  onDismiss: () => void
 }
 
-function PersonRow({ person, weeks, onApply }: RowProps) {
+function PersonRow({ person, weeks, save, onSave, onDismiss }: RowProps) {
   return (
     <tr>
       <th scope="row" className="person-col">
         <span className="person-name">{person.name}</span>
-        <HoursEditor person={person} onApply={onApply} />
+        <HoursEditor person={person} save={save} onSave={onSave} onDismiss={onDismiss} />
       </th>
       {person.allocated.map((allocated, i) => (
         <Cell key={weeks[i]} allocated={allocated} capacity={person.weeklyHours} />

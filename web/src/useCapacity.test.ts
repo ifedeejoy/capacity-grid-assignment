@@ -63,15 +63,38 @@ describe('useCapacity', () => {
     expect(result.current.stale).toBe(true)
   })
 
-  it('applyPerson updates only that row, in place', async () => {
+  it('a failed save rolls the row back and records the failure, with no row component involved', async () => {
     const pending = controllableFetch()
     const { result } = renderHook(() => useCapacity('2025-12-29', '2026-01-04'))
     await act(async () => pending[0].resolve(response('2025-12-29', '2026-01-04')))
 
-    act(() => result.current.applyPerson({ id: 1, name: 'Ana', weeklyHours: 20 }))
-    expect(result.current.data?.people[0]).toMatchObject({ weeklyHours: 20, allocated: [30] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 })))
+    let save!: Promise<void>
+    act(() => {
+      save = result.current.saveWeeklyHours({ id: 1, name: 'Ana', weeklyHours: 40 }, 48)
+    })
+    expect(result.current.data?.people[0].weeklyHours).toBe(48) // optimistic
+    expect(result.current.saves[1]).toEqual({ status: 'saving' })
 
-    act(() => result.current.applyPerson({ id: 999, name: 'Nobody', weeklyHours: 1 }))
-    expect(result.current.data?.people).toHaveLength(1)
+    await act(() => save)
+    expect(result.current.data?.people[0]).toMatchObject({ weeklyHours: 40, allocated: [30] })
+    expect(result.current.saves[1]).toEqual({ status: 'failed', attempted: 48, message: 'boom' })
+
+    act(() => result.current.dismissSave(1))
+    expect(result.current.saves[1]).toBeUndefined()
+  })
+
+  it('a successful save settles on the stored value and clears the save state', async () => {
+    const pending = controllableFetch()
+    const { result } = renderHook(() => useCapacity('2025-12-29', '2026-01-04'))
+    await act(async () => pending[0].resolve(response('2025-12-29', '2026-01-04')))
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ id: 1, name: 'Ana', weeklyHours: 32.5 }), { status: 200 })),
+    )
+    await act(() => result.current.saveWeeklyHours({ id: 1, name: 'Ana', weeklyHours: 40 }, 32))
+    expect(result.current.data?.people[0].weeklyHours).toBe(32.5)
+    expect(result.current.saves[1]).toBeUndefined()
   })
 })
