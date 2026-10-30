@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CapacityGrid } from './CapacityGrid'
 import { DateField } from './DateField'
-import { clampRange, rangeLabel, shiftRange, sundayOf, todayISO, weekCount, type Range } from './weeks'
+import { addDays, clampRange, mondayOf, rangeLabel, shiftRange, sundayOf, todayISO, weekCount, type Range } from './weeks'
 
 // Three weeks around the turn of the year: the seed's hand-written scenario
 // (people 1–5) lives here, so it is the most useful place to land.
@@ -12,8 +12,8 @@ export function App() {
   const weeks = weekCount(range.from, range.to)
 
   function goToThisWeek() {
-    const from = clampRange(todayISO(), todayISO(), 'from').from
-    setRange(clampRange(from, shiftRange({ from, to: from }, weeks - 1).to, 'from'))
+    const from = mondayOf(todayISO())
+    setRange({ from, to: addDays(from, weeks * 7 - 1) })
   }
 
   return (

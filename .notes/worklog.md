@@ -39,8 +39,8 @@ left unfinished. Append as you go; a line or two per entry is right.
   weekly hours, and refetching a 3000×104 grid to change one scalar is the wrong trade. The optimistic value
   shows immediately; the server's echoed value replaces it, so any server-side normalisation reaches the screen.
 - Failed save: row rolls back to the previous hours, an inline error names the attempted value and offers
-  Retry / Dismiss. The rest of the grid stays usable. The input is disabled during a save so two in-flight
-  saves on one row cannot race each other's rollback.
+  Retry / Dismiss. The rest of the grid stays usable. While a save is in flight the row shows "saving…"
+  instead of an input, so two in-flight saves on one row cannot race each other's rollback.
 - Range change aborts the in-flight request. The previous grid stays on screen, dimmed, with a loading notice;
   a failed range keeps the previous grid and says which range it is actually showing.
 - Dead end: a save against a stopped API sat in "saving…" until the Vite proxy gave up. Added a 15 s timeout
@@ -58,3 +58,15 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Bug caught by actually typing into the date picker: Chrome fires change per keystroke, so "0002-01-18"
   landed as a real date and dragged the range to 1906; it also allows five-digit years, which crashed the
   range reducer on blur. `DateField` now only commits a 4-digit year in 2000–2099 and discards the rest.
+
+## Self-review pass
+
+- Bug found by reviewing the diff as a stranger, then proven with a throwaway test: save state lived in the
+  row component, guarded by a mounted ref. With "Only over-allocated" on, raising someone's hours takes them
+  out of the filter mid-save, the row unmounts, and a *rejected* save never rolled back — the grid kept the
+  value the server refused, and the manager saw the row vanish as if it had worked. Save state now lives in
+  `useCapacity` keyed by person id, rollback runs regardless of what is mounted, and a row with a pending or
+  failed save stays visible under the filter. `CapacityGrid.test.tsx` is that exact scenario.
+- Also from the pass: `stale` now compares against the range that was *requested*, not the server echo, so a
+  future server that snaps differently can't leave the grid permanently "stale"; "This week" lost two
+  redundant clamp calls; a duplicate ISO-week case was cut; the API gained tests for the week snapping.
