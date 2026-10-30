@@ -82,8 +82,11 @@ left unfinished. Append as you go; a line or two per entry is right.
   this, not from tests.
 - Clicked through every goal in the brief in a real browser, screenshot per step (`.context/qa-*`): default
   range checked cell-by-cell against a direct SQL query, prev/next/this-week, typed date ranges, a valid edit,
-  an invalid edit, a failed save, a failed range change, a failed first load, and Retry from each. Not seen by
-  eye: the brief loading state (loads finish in ~10 ms locally) and light mode (machine is in dark mode).
+  an invalid edit, a failed save, a failed range change, a failed first load, and Retry from each.
+- Two states were not visible at first: loading (finishes in ~10 ms locally) and light mode (machine is dark).
+  Added a light/dark toggle in the toolbar (one `data-theme` attribute; the stylesheet already ran on
+  `color-scheme` and system colours) and slowed `fetch` by 3 s from the browser console. Both states checked
+  by eye: the previous grid dims under a "Loading…" notice, and "saving…" shows with the optimistic value.
 - Feedback: the legend's coloured squares read as checkboxes and did nothing. They are now the filter: tick
   any mix of over / at capacity / within to show people with at least one such week, none ticked shows
   everyone. The separate "Only over-allocated" box was ours, not the scaffold's, so it went rather than

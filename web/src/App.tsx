@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CapacityGrid } from './CapacityGrid'
 import { DateField } from './DateField'
+import { ThemeToggle } from './ThemeToggle'
 import { addDays, clampRange, mondayOf, rangeLabel, shiftRange, sundayOf, todayISO, weekCount, type Range } from './weeks'
 
 // Three weeks around the turn of the year: the seed's hand-written scenario
@@ -43,6 +44,7 @@ export function App() {
             onCommit={(v) => setRange((r) => clampRange(v, r.to, 'from'))}
           />
           <DateField label="To" value={range.to} onCommit={(v) => setRange((r) => clampRange(r.from, v, 'to'))} />
+          <ThemeToggle />
         </div>
       </header>
       <CapacityGrid from={range.from} to={range.to} />
