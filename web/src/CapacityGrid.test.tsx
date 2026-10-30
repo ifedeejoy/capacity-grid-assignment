@@ -19,7 +19,7 @@ afterEach(() => {
 })
 
 describe('CapacityGrid', () => {
-  it('keeps a row whose save failed visible under the only-over filter, rolled back, with the error', async () => {
+  it('keeps a row whose save failed visible under the over filter, rolled back, with the error', async () => {
     let rejectSave!: (e: Error) => void
     vi.stubGlobal(
       'fetch',
@@ -34,7 +34,7 @@ describe('CapacityGrid', () => {
     render(<CapacityGrid from="2025-12-29" to="2026-01-04" />)
     await screen.findByText('Ana')
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /only over-allocated/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'over' }))
     expect(screen.queryByText('Bo')).not.toBeInTheDocument()
 
     // Raising Ana to 48 h takes her out of "over" while the save is in flight.
@@ -50,5 +50,27 @@ describe('CapacityGrid', () => {
     await waitFor(() => expect(anaRow).toHaveTextContent(/couldn.t save 48 h/i))
     expect(within(anaRow).getByTitle(/45 of 40 h, over capacity/)).toBeInTheDocument()
     expect(document.querySelector('.summary')).toHaveTextContent('1 of 2 people over capacity')
+  })
+})
+
+describe('status filter', () => {
+  it('shows people with a week in any ticked state, and everyone when nothing is ticked', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(grid), { status: 200 })))
+    render(<CapacityGrid from="2025-12-29" to="2026-01-04" />)
+    await screen.findByText('Ana')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'within' }))
+    expect(screen.queryByText('Ana')).not.toBeInTheDocument()
+    expect(screen.getByText('Bo')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'over' }))
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+    expect(screen.getByText('Bo')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'within' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'over' }))
+    expect(screen.getByText('Ana')).toBeInTheDocument()
+    expect(screen.getByText('Bo')).toBeInTheDocument()
+    expect(document.querySelector('.summary')).not.toHaveTextContent('showing')
   })
 })

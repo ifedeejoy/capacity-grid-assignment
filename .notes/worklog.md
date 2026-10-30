@@ -70,3 +70,6 @@ left unfinished. Append as you go; a line or two per entry is right.
 - Also from the pass: `stale` now compares against the range that was *requested*, not the server echo, so a
   future server that snaps differently can't leave the grid permanently "stale"; "This week" lost two
   redundant clamp calls; a duplicate ISO-week case was cut; the API gained tests for the week snapping.
+- The legend's coloured squares read as checkboxes and did nothing, which was fair feedback. They are now
+  real checkboxes: tick any mix of over / at capacity / within to show people with at least one such week,
+  none ticked shows everyone. The separate "Only over-allocated" box we had added became redundant and went.

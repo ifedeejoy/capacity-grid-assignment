@@ -119,26 +119,28 @@ input[type='number'] {
   font-size: 0.95rem;
 }
 
-.toggle {
-  display: inline-flex;
-  gap: 0.4rem;
-  align-items: center;
+.summary-shown {
+  opacity: 0.65;
 }
 
 .legend {
   display: flex;
   gap: 1rem;
-  list-style: none;
   margin: 0 0 0 auto;
   padding: 0;
+  border: 0;
   font-size: 0.85rem;
-  opacity: 0.85;
 }
 
-.legend li {
+.legend-item {
   display: inline-flex;
   gap: 0.35rem;
   align-items: center;
+  cursor: pointer;
+}
+
+.legend-item input {
+  margin: 0;
 }
 
 .swatch {
