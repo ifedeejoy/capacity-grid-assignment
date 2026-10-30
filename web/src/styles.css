@@ -9,6 +9,7 @@
   --over-bg: color-mix(in srgb, #e53935 16%, Canvas);
   --full: #b26a00;
   --full-bg: color-mix(in srgb, #ffb300 16%, Canvas);
+  --ok: #2e7d32;
   --ok-bg: color-mix(in srgb, #43a047 14%, Canvas);
 }
 
@@ -139,28 +140,58 @@ input[type='number'] {
   cursor: pointer;
 }
 
-.legend-item input {
-  margin: 0;
+.legend-item:hover .swatch {
+  filter: brightness(1.2);
 }
 
+/* The swatch is the checkbox: outlined when off, solid with a tick when on. */
 .swatch {
-  width: 0.9rem;
-  height: 0.9rem;
+  --swatch: currentColor;
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
   border-radius: 3px;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--swatch);
+  background: color-mix(in srgb, var(--swatch) 18%, Canvas);
+  transition:
+    background 0.12s,
+    transform 0.12s;
 }
 
 .swatch--over {
-  background: var(--over-bg);
-  border-color: var(--over);
+  --swatch: var(--over);
 }
 
 .swatch--full {
-  background: var(--full-bg);
+  --swatch: var(--full);
 }
 
 .swatch--ok {
-  background: var(--ok-bg);
+  --swatch: var(--ok);
+}
+
+.legend-item input:checked + .swatch {
+  background: var(--swatch);
+}
+
+.legend-item input:checked + .swatch::after {
+  content: '';
+  width: 0.28rem;
+  height: 0.55rem;
+  margin-top: -0.1rem;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.legend-item input:focus-visible + .swatch {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.legend-item:active .swatch {
+  transform: scale(0.92);
 }
 
 /* Grid */

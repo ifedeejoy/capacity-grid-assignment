@@ -181,15 +181,17 @@ const FILTERS: Array<{ status: FilterStatus; label: string }> = [
   { status: 'ok', label: 'within' },
 ]
 
-// Legend and filter in one: each swatch is a checkbox. Ticking any subset
-// shows people with at least one week in those states; none ticked shows all.
+// Legend and filter in one: the coloured swatch *is* the checkbox (the native
+// input is visually hidden but still focusable and labelled). Ticking any
+// subset shows people with at least one week in those states; none ticked
+// shows all.
 function StatusFilter({ filter, onToggle }: { filter: Set<FilterStatus>; onToggle: (s: FilterStatus) => void }) {
   return (
     <fieldset className="legend">
       <legend className="sr-only">Show only people with a week that is</legend>
       {FILTERS.map(({ status, label }) => (
         <label key={status} className="legend-item">
-          <input type="checkbox" checked={filter.has(status)} onChange={() => onToggle(status)} />
+          <input type="checkbox" className="sr-only" checked={filter.has(status)} onChange={() => onToggle(status)} />
           <span className={`swatch swatch--${status}`} aria-hidden="true" />
           {label}
         </label>
